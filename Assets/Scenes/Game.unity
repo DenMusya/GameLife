@@ -238,7 +238,7 @@ Camera:
   m_TargetDisplay: 0
   m_TargetEye: 0
   m_HDR: 1
-  m_AllowMSAA: 0
+  m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 0
@@ -304,9 +304,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cameraObject: {fileID: 519420028}
   squaresManagerObject: {fileID: 287872316}
-  timeToIteration: 0.1
-  width: 200
-  height: 200
+  timeToIteration: 1
+  width: 300
+  height: 300
   cellSize: 1
   brushSize: 0
 --- !u!4 &1304917182

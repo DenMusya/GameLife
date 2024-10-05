@@ -45,6 +45,7 @@ public class GameManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
         {
             _isRunning = !_isRunning;
+            _squaresManager.UpdateAfterStop();
         }
         
         _squaresManager.UpdateOnTrigger();

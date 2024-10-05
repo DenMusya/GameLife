@@ -75,14 +75,14 @@ public class SquaresManager : MonoBehaviour
 
             if (activate)
             {
-                _squaresArray[x, y].Activate();
+                _squaresArray[x, y].ImmediateActivation();
             }
             else
             {
-                _squaresArray[x, y].Deactivate();
+                _squaresArray[x, y].ImmediateDeactivation();
             }
 
-            _squaresArray[x, y].Update();
+            //_squaresArray[x, y].Update();
         }
     }
     
@@ -92,8 +92,8 @@ public class SquaresManager : MonoBehaviour
         {
             for (var y = 0; y < _squaresArray.GetLength(1); ++y)
             {
-                _squaresArray[x, y].Deactivate();
-                _squaresArray[x, y].Update();
+                _squaresArray[x, y].ImmediateDeactivation();
+                //_squaresArray[x, y].Update();
             }
         }
     }
@@ -107,13 +107,13 @@ public class SquaresManager : MonoBehaviour
             {
                 if (random.Next(2) == 0)
                 {
-                    _squaresArray[x, y].Activate();
+                    _squaresArray[x, y].ImmediateActivation();
                 }
                 else
                 {
-                    _squaresArray[x, y].Deactivate();
+                    _squaresArray[x, y].ImmediateDeactivation();
                 }
-                _squaresArray[x, y].Update();
+                //_squaresArray[x, y].Update();
             }
         }
     }
@@ -215,6 +215,15 @@ public class SquaresManager : MonoBehaviour
         }
         
         return squares;
+    }
+
+    public void UpdateAfterStop()
+    {
+        foreach (var square in _targetedSquaresList)
+        {
+            square.Untarget();
+        }
+        _targetedSquaresList.Clear();
     }
     private GameObject SpawnSquare(Vector3 position, float squareSize)
     {

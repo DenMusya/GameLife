@@ -1,10 +1,10 @@
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class Square
 {
-    //private readonly GameObject _gameObject;
     private readonly SpriteRenderer _renderer;
+    private readonly Transform _transform;
+    private readonly SquareAnimator _animator;
     
     private bool _isActivePrev;
     private bool _isActiveCurrent;
@@ -12,28 +12,48 @@ public class Square
     
     
     private static Color _activateColor;
-    private static Color _deactivateColor;
-    private static Color _onTargetColor;
+    
+    private static Color _onTargetDeactivateColor;
+    private static Color _onTargetActivateColor;
+    
     public Square(GameObject gameObject)
     {
-        //_gameObject = gameObject;
         _isActivePrev = false;
         _isActiveCurrent = false;
         
         _activateColor = Color.white;
-        _deactivateColor = Color.white;
-        _onTargetColor = Color.white;
+        _onTargetActivateColor = Color.white;
+        _onTargetDeactivateColor = Color.white;
 
         _activateColor.a = 1f;
-        _deactivateColor.a = 0f;
-        _onTargetColor.a = .5f;
+        _onTargetActivateColor.a = .6f;
+        _onTargetDeactivateColor.a = .3f;
         
         
         _renderer = gameObject.GetComponent<SpriteRenderer>();
-        _renderer.color = _deactivateColor;
-        
         _renderer.enabled = true;
         
+        _transform = gameObject.GetComponent<Transform>();
+        _transform.localScale = new Vector3(0, 0, 1);
+
+        _animator = gameObject.GetComponent<SquareAnimator>();
+        _animator.enabled = false;
+    }
+
+    public void ImmediateActivation()
+    {
+        _isActiveCurrent = true;
+        _isActivePrev = true;
+        
+        _transform.localScale = new Vector3(1, 1, 1);
+    }
+
+    public void ImmediateDeactivation()
+    {
+        _isActiveCurrent = false;
+        _isActivePrev = false;
+        
+        _transform.localScale = new Vector3(0, 0, 1);
     }
 
     public void Activate()
@@ -48,12 +68,14 @@ public class Square
 
     public void Target()
     {
-        _renderer.color = _onTargetColor;
+        _transform.localScale = new Vector3(1, 1, 1);
+        _renderer.color = _isActiveCurrent ? _onTargetActivateColor : _onTargetDeactivateColor;
     }
 
     public void Untarget()
     {
-        _renderer.color = _isActiveCurrent ? _activateColor : _deactivateColor;
+        _transform.localScale = _isActiveCurrent ? new Vector3(1, 1, 1) : new Vector3(0, 0, 1);;
+        _renderer.color = _activateColor;
     }
     public bool IsActive()
     {
@@ -62,12 +84,33 @@ public class Square
 
     public void Update()
     {
-        _isActivePrev = _isActiveCurrent;
-        _renderer.color = _isActiveCurrent ? _activateColor : _deactivateColor;
+        var death = _isActivePrev && !_isActiveCurrent;
+        var birth = !_isActivePrev && _isActiveCurrent;
         
-        //_gameObject.SetActive(_isActiveCurrent);
+        _isActivePrev = _isActiveCurrent;
+        
+        if (death)
+        {
+            DeadAnimation();
+        }
+
+        if (birth)
+        {
+            BirthAnimation();
+        }
+    }
+
+    private void BirthAnimation()
+    {
+        _animator.enabled = true;
+        _animator.PlayBirthAnimation();
     }
     
+    private void DeadAnimation()
+    {
+        _animator.enabled = true;
+        _animator.PlayDeadAnimation();
+    }
     
     
 }
