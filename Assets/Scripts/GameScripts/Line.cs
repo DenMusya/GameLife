@@ -16,15 +16,11 @@ public class Line
         
         _lineRenderer = lineObject.AddComponent<LineRenderer>();
         _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        
         _lineRenderer.startColor = Color.gray;
         _lineRenderer.endColor = Color.gray;
-
-        // Set the width of the line
+        
         _lineRenderer.widthMultiplier = 0.1f;
-        //_lineRenderer.startWidth = 0.1f;
-        //_lineRenderer.endWidth = 0.1f;
-
-        // Set the number of positions (points) to draw the line
         _lineRenderer.positionCount = 2;
         
     }

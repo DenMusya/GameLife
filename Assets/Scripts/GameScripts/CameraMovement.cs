@@ -2,15 +2,18 @@ using UnityEngine;
 
 public class CameraMovement: MonoBehaviour
 {
-    private new Camera _camera;
+    private Camera _camera;
+    
     [SerializeField] private float movementSpeed = 10f;
     [SerializeField] private float zoomSpeed = 10f;
+    
     private const float MinFov = 1f;
-    private const float MaxFov = 100f;
+    private const float MaxFov = 50f;
 
     private void Start()
     {
         _camera = GetComponent<Camera>();
+        _camera.transform.position = new Vector3(GameManager.GetWidth() * GameManager.GetCellSize() / 2f, GameManager.GetHeight() * GameManager.GetCellSize() / 2f, -10);
     }
     private void Update()
     {

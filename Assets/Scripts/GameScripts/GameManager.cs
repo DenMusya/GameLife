@@ -1,23 +1,28 @@
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     [SerializeField] private GameObject cameraObject;
     [SerializeField] private GameObject squaresManagerObject;
+    [SerializeField] private EndGame endGame;
     
     private static Table _table;
     private static SquaresManager _squaresManager;
     private static Camera _camera;
-
     
-    [SerializeField] private float timeToIteration;
-    [SerializeField] private int width;
-    [SerializeField] private int height;  
-    [SerializeField] private float cellSize;
-    [SerializeField] private int brushSize;
+    private const int Width = 400;
+    private const int Height = 400;  
+    private const float CellSize = 1f;
+    
+    private static float _timeToIteration;
+    private static int _brushSize;
     
     private static bool _isRunning;
+    private static bool _isFrozenMouseClick;
+    
+    private static GameMode _gameMode;
+    private static bool _isEndGame;
 
     private void Awake()
     {
@@ -25,40 +30,73 @@ public class GameManager : MonoBehaviour
         Application.targetFrameRate = 60;
         
         _isRunning = false;
+        _isFrozenMouseClick = false;
+        _isEndGame = false;
         
-        Utils.Instantiate(width, height, cellSize);
+        Utils.Instantiate(Width, Height, CellSize);
         
-        _table = new Table(width, height);
+        _table = new Table(Width, Height);
+        _table.Render();
         
         _squaresManager = squaresManagerObject.GetComponent<SquaresManager>();
         
         _camera = cameraObject.GetComponent<Camera>();
         
-        cameraObject.transform.position = new Vector3(width * cellSize / 2f, height * cellSize / 2f, -10);
+        ScoreBoard.SetPlayer1Score(PlayerPrefs.GetInt("Player1"));
+        ScoreBoard.SetPlayer2Score(PlayerPrefs.GetInt("Player2"));
     }
     private void Update()
     {
         Debug.Log("FPS: " + 1f / Time.deltaTime);
-        
-        _table.Render();
-        
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (!_isEndGame)
         {
-            _isRunning = !_isRunning;
-            _squaresManager.UpdateAfterStop();
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                _isRunning = !_isRunning;
+                _squaresManager.UpdateAfterStop();
+            }
+
+            _squaresManager.UpdateOnTrigger();
+            ScoreBoard.UpdateScore();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            SceneManager.LoadScene(0);
         }
         
-        _squaresManager.UpdateOnTrigger();
-
-        for (var i = 0; i <= 9; ++i)
+        if (Input.GetKeyDown(KeyCode.Return))
         {
-            if (Input.GetKeyDown(i.ToString()))
-            {
-                brushSize = i;
-            }
+            _squaresManager.UpdateAfterStop();
+            _isEndGame = true;
+            endGame.End(_squaresManager.GetActiveSquaresCount());
         }
     }
 
+    public static void SetGameSpeed(float speed)
+    {
+        _timeToIteration = speed;
+    }
+
+    public static void SetBrushSize(int size)
+    {
+        _brushSize = size;
+    }
+
+    public static void FreezeMouse()
+    {
+        _isFrozenMouseClick = true;
+    }
+
+    public static void UnfreezeMouse()
+    {
+        _isFrozenMouseClick = false;
+    }
+    
+    public static bool IsFrozenMouse()
+    {
+        return _isFrozenMouseClick;
+    }
     public static bool IsRunning()
     {
         return _isRunning;
@@ -69,49 +107,33 @@ public class GameManager : MonoBehaviour
         return _camera;
     }
     
-    public int GetWidth()
+    public static int GetWidth()
     {
-        return width;
+        return Width;
     }
 
-    public int GetHeight()
+    public static int GetHeight()
     {
-        return height;
+        return Height;
     }
 
-    public float GetCellSize()
+    public static float GetCellSize()
     {
-        return cellSize;
+        return CellSize;
     }
 
-    public int GetBrushSize()
+    public static int GetBrushSize()
     {
-        return brushSize;
+        return _brushSize;
     }
 
-    public float GetTimeToIteration()
+    public static float GetTimeToIteration()
     {
-        return timeToIteration;
+        return _timeToIteration;
     }
 
-    public List<Vector2Int> GetSquaresByBrush(Vector3 center)
+    public static GameMode GetGameMode()
     {
-        var squares = new List<Vector2Int>();
-        
-        var x = Utils.GetCellCoordinates(center).x;
-        var y = Utils.GetCellCoordinates(center).y;
-
-        for (var dx = -brushSize; dx <= brushSize; dx++)
-        {
-            for (var dy = -brushSize; dy <= brushSize; dy++)
-            {
-                if (Mathf.Abs(dy) + Mathf.Abs(dx) <= brushSize)
-                {
-                    squares.Add(new Vector2Int(x + dx, y + dy));
-                }
-            }
-        }
-        
-        return squares;
+        return _gameMode;
     }
 }

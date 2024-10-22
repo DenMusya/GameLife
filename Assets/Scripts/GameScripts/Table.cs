@@ -1,17 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 public class Table {
     private readonly Line[] _horizontalLines;
     private readonly Line[] _verticalLines;
     
-    //private readonly int _width;
-    //private readonly int _height;
     public Table(int width, int height)
     {
-        //_width = width;
-        //_height = height;
         
         _horizontalLines = new Line[width + 1];
         _verticalLines = new Line[height + 1];

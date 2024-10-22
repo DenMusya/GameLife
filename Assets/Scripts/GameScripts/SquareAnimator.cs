@@ -14,8 +14,8 @@ public class SquareAnimator : MonoBehaviour
     private SquareAnimation _deadAnimation;
     private SquareAnimation _birthAnimation;
 
-    private bool _isDead = false;
-    private bool _isBirth = false;
+    private bool _isDead;
+    private bool _isBirth;
 
     private void Start()
     {

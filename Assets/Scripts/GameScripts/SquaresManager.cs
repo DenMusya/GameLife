@@ -1,38 +1,32 @@
 using UnityEngine;
 using System.Collections.Generic;
+
 public class SquaresManager : MonoBehaviour
 {
     [SerializeField] private GameObject squarePrefab;
-    [SerializeField] private GameObject gameManagerObject;
-    
-    private GameManager _gameManager;
+    [SerializeField] private SquareConfigurationsManager squareConfigurationsManager;
     private Square[,] _squaresArray;
-
-    private int _width;
-    private int _height;
-    private float _squareSize;
     
     private static float _timer;
 
     private List<Square> _targetedSquaresList;
+
+    private bool _isTemplateChosen;
+    
+    private static PlayerType _currentPlayerType;
     
     private void Start()
     {
-        _gameManager = gameManagerObject.GetComponent<GameManager>();
-
-        _width = _gameManager.GetWidth();
-        _height = _gameManager.GetHeight();
-        _squareSize = _gameManager.GetCellSize();
-        
-        _squaresArray = new Square[_width, _height];
+        _isTemplateChosen = false;
+        _squaresArray = new Square[GameManager.GetWidth(), GameManager.GetHeight()];
         _targetedSquaresList = new List<Square>();
         
         for (var i = 0; i < _squaresArray.GetLength(0); i++)
         {
             for (var j = 0; j < _squaresArray.GetLength(1); j++)
             {
-                var position = Utils.GetWorldCellPosition(i, j) + new Vector3(_squareSize, _squareSize) / 2f;
-                _squaresArray[i, j] = new Square(SpawnSquare(position, _squareSize));
+                var position = Utils.GetWorldCellPosition(i, j) + new Vector3(GameManager.GetCellSize(), GameManager.GetCellSize()) / 2f;
+                _squaresArray[i, j] = new Square(SpawnSquare(position, GameManager.GetCellSize()));
             }
         }
         
@@ -44,17 +38,19 @@ public class SquaresManager : MonoBehaviour
         {
             for (var y = 0; y < _squaresArray.GetLength(1); ++y)
             {
-                var neighbours = CountOfNeighbours(x, y);
-                if (IsActiveSquare(x, y) && neighbours != 2 && neighbours != 3)
+                var neighboursPlayer1 = CountOfNeighbours(x, y, PlayerType.Player1);
+                var neighboursPlayer2 = CountOfNeighbours(x, y, PlayerType.Player2);
+                var deltaNeighbours = neighboursPlayer1 - neighboursPlayer2;
+                
+                if (IsActiveSquare(x, y) && deltaNeighbours != 2 && deltaNeighbours != 3 && deltaNeighbours != -2 && deltaNeighbours != -3)
                 {
                     _squaresArray[x, y].Deactivate();
                 }
 
-                if (!IsActiveSquare(x, y) && neighbours == 3)
+                if (!IsActiveSquare(x, y) && (deltaNeighbours == 3 || deltaNeighbours == -3))
                 {
-                    _squaresArray[x, y].Activate();
+                    _squaresArray[x, y].Activate(deltaNeighbours == 3 ? PlayerType.Player1 : PlayerType.Player2);
                 }
-                
             }
         }
 
@@ -64,61 +60,54 @@ public class SquaresManager : MonoBehaviour
         }
     }
     
-    private void UpdateSquareOnClick(List<Vector2Int> squaresToUpdatePositions, bool activate)
+    private void UpdateSquareOnClick(SquareConfiguration squaresToUpdatePositions, bool activate)
     {
-        foreach (var squarePositions in squaresToUpdatePositions)
+        foreach (var squarePositions in squaresToUpdatePositions.GetSquares())
         {
             var x = squarePositions.x;
             var y = squarePositions.y;
 
             if (!Utils.IsAllowableSquare(x, y)) continue;
 
-            if (activate)
+            if (activate && !_squaresArray[x, y].IsActive() && ScoreBoard.GetRemainingPlayerSquares(_currentPlayerType) >= 1)
             {
-                _squaresArray[x, y].ImmediateActivation();
+                _squaresArray[x, y].ImmediateActivation(_currentPlayerType);
+                ScoreBoard.DecreaseRemainingPlayerSquares(_currentPlayerType);
             }
-            else
+            else if (!activate && _squaresArray[x, y].IsActive() && _currentPlayerType == _squaresArray[x, y].GetPlayerType())
             {
                 _squaresArray[x, y].ImmediateDeactivation();
+                ScoreBoard.IncreaseRemainingPlayerSquares(_currentPlayerType);
             }
-
-            //_squaresArray[x, y].Update();
         }
     }
     
-    private void ClearGrid()
+    public void ClearGrid()
     {
-        for (var x = 0; x < _squaresArray.GetLength(0); ++x)
+        foreach (var square in _squaresArray)
         {
-            for (var y = 0; y < _squaresArray.GetLength(1); ++y)
-            {
-                _squaresArray[x, y].ImmediateDeactivation();
-                //_squaresArray[x, y].Update();
-            }
+            if (!square.IsActive() || square.GetPlayerType() != _currentPlayerType) {continue;}
+            
+            ScoreBoard.IncreaseRemainingPlayerSquares(square.GetPlayerType());
+            square.ImmediateDeactivation();
+            
         }
     }
 
     private void RandomFillGrid()
     {
         var random = new System.Random();
-        for (var x = 0; x < _squaresArray.GetLength(0); ++x)
+        foreach (var square in _squaresArray)
         {
-            for (var y = 0; y < _squaresArray.GetLength(1); ++y)
+            if (random.Next(2) == 0 && !square.IsActive() && ScoreBoard.GetRemainingPlayerSquares(_currentPlayerType) >= 1)
             {
-                if (random.Next(2) == 0)
-                {
-                    _squaresArray[x, y].ImmediateActivation();
-                }
-                else
-                {
-                    _squaresArray[x, y].ImmediateDeactivation();
-                }
-                //_squaresArray[x, y].Update();
+                square.ImmediateActivation(_currentPlayerType);
+                ScoreBoard.DecreaseRemainingPlayerSquares(_currentPlayerType);
             }
         }
     }
 
-    private void UpdateTargetSquare(List<Vector2Int> squaresToTargetPositions)
+    private void UpdateTargetSquare(SquareConfiguration squaresToTargetPositions)
     {
         foreach (var square in _targetedSquaresList)
         {
@@ -126,7 +115,7 @@ public class SquaresManager : MonoBehaviour
         }
         _targetedSquaresList.Clear();
 
-        foreach (var squarePosition in squaresToTargetPositions)
+        foreach (var squarePosition in squaresToTargetPositions.GetSquares())
         {
             var x = squarePosition.x;
             var y = squarePosition.y;
@@ -137,13 +126,13 @@ public class SquaresManager : MonoBehaviour
             _targetedSquaresList.Add(_squaresArray[x, y]);
         }
     }
-    private int CountOfNeighbours(int x, int y)
+    private int CountOfNeighbours(int x, int y, PlayerType playerType)
     {
         var neighbours = 0;
 
         for (var i = 0; i < Utils.Dx.Length; i++)
         {
-            neighbours += IsActiveSquare(x + Utils.Dx[i], y + Utils.Dy[i]) ? 1 : 0;
+            neighbours += IsActiveSquare(x + Utils.Dx[i], y + Utils.Dy[i]) && _squaresArray[x + Utils.Dx[i], y + Utils.Dy[i]].GetPlayerType() == playerType ? 1 : 0;
         }
         
         return neighbours;
@@ -158,34 +147,54 @@ public class SquaresManager : MonoBehaviour
         if (!GameManager.IsRunning())
         {
             var curMousePosition = GameManager.GetCamera().ScreenToWorldPoint(Input.mousePosition);
-            
-            UpdateTargetSquare(GetSquaresByBrush(curMousePosition));
+            var currentConfiguration = !_isTemplateChosen ? Utils.GetSquaresByBrush(curMousePosition) : squareConfigurationsManager.GetTemplate(curMousePosition);
+
+            if (Input.GetKeyDown(KeyCode.LeftShift))
+            {
+                SwapPlayerType();
+            }
             
             if (Input.GetKeyDown(KeyCode.R))
             {
                 RandomFillGrid();
             }
             
-            if (Input.GetMouseButton(0))
-            {
-                UpdateSquareOnClick(GetSquaresByBrush(curMousePosition), true);
-            }
-            
-            if (Input.GetMouseButton(1))
-            {
-                UpdateSquareOnClick(GetSquaresByBrush(curMousePosition), false);
-            }
-            
             if (Input.GetKeyDown(KeyCode.C))
             {
                 ClearGrid();
             }
+
+            if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                SquareConfigurationsManager.ReverseConfiguration();
+            }
+            
+            for (var i = 0; i <= 9; ++i)
+            {
+                if (!Input.GetKeyDown(i.ToString()))
+                {
+                    continue;
+                }
+                
+                GameManager.SetBrushSize(i);
+                _isTemplateChosen = false;
+            }
+            
+            if (Input.GetMouseButton(0) && !GameManager.IsFrozenMouse())
+            {
+                UpdateSquareOnClick(currentConfiguration, true);
+            }
+            
+            if (Input.GetMouseButton(1) && !GameManager.IsFrozenMouse())
+            {
+                UpdateSquareOnClick(currentConfiguration, false);
+            }
+            
+            UpdateTargetSquare(currentConfiguration);
             return;
         }
-
-        //Debug.Log("FPS: " + 1f / Time.deltaTime);
         
-        if (_timer >= _gameManager.GetTimeToIteration())
+        if (_timer >= GameManager.GetTimeToIteration())
         {
             _timer = 0f;
             UpdateSquares();
@@ -194,27 +203,6 @@ public class SquaresManager : MonoBehaviour
         {
             _timer += Time.deltaTime;
         }
-    }
-    
-    private List<Vector2Int> GetSquaresByBrush(Vector3 center)
-    {
-        var squares = new List<Vector2Int>();
-        
-        var x = Utils.GetCellCoordinates(center).x;
-        var y = Utils.GetCellCoordinates(center).y;
-
-        for (var dx = -_gameManager.GetBrushSize(); dx <= _gameManager.GetBrushSize(); dx++)
-        {
-            for (var dy = -_gameManager.GetBrushSize(); dy <= _gameManager.GetBrushSize(); dy++)
-            {
-                if (Mathf.Abs(dy) + Mathf.Abs(dx) <= _gameManager.GetBrushSize())
-                {
-                    squares.Add(new Vector2Int(x + dx, y + dy));
-                }
-            }
-        }
-        
-        return squares;
     }
 
     public void UpdateAfterStop()
@@ -228,9 +216,39 @@ public class SquaresManager : MonoBehaviour
     private GameObject SpawnSquare(Vector3 position, float squareSize)
     {
         var square = Instantiate(squarePrefab, position, Quaternion.identity);
-        square.transform.localScale = new Vector3(squareSize, squareSize, 1);
+        square.transform.localScale = new Vector3(squareSize, squareSize, 1f);
         return square;
     }
-    
-    
+
+    public void TemplateChosen()
+    {
+        _isTemplateChosen = true;
+    }
+
+    public static void SwapPlayerType()
+    {
+        _currentPlayerType = _currentPlayerType == PlayerType.Player1 ? PlayerType.Player2 : PlayerType.Player1;
+    }
+
+    public static PlayerType GetPlayerType()
+    {
+        return _currentPlayerType;
+    }
+
+    public Vector2Int GetActiveSquaresCount()
+    {
+        var count = new Vector2Int(0, 0);
+        foreach (var square in _squaresArray)
+        {
+            if (square.GetPlayerType() == PlayerType.Player1)
+            {
+                count.x += square.IsActive() ? 1 : 0;
+            }
+            if (square.GetPlayerType() == PlayerType.Player2)
+            {
+                count.y += square.IsActive() ? 1 : 0;
+            }
+        }
+        return count;
+    }
 }

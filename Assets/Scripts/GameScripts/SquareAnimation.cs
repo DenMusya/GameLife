@@ -4,12 +4,13 @@ public class SquareAnimation
 {
     private readonly bool _isDeadAnimation;
     private readonly Transform _squareTransform;
-    private const float AnimationTime = .3f; 
+    private float _animationTime; 
     
     private float _currentElapsedTime;
     
     public SquareAnimation(bool isDeadAnimation, Transform squareTransform)
     {
+        _animationTime = GameManager.GetTimeToIteration() / 2f;
         _isDeadAnimation = isDeadAnimation;
         _squareTransform = squareTransform;
     }
@@ -17,9 +18,10 @@ public class SquareAnimation
     //returns true if animation is ended
     public bool Update(float elapsedTime)
     {
+        _animationTime = GameManager.GetTimeToIteration() / 3f;
         _currentElapsedTime += elapsedTime;
         
-        var percentComplete = _currentElapsedTime / AnimationTime;
+        var percentComplete = _currentElapsedTime / _animationTime;
 
         if (_isDeadAnimation)
         {
